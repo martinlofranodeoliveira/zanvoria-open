@@ -1,6 +1,6 @@
 // Dependency-free static development server; binds to loopback only.
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { lstat, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, resolve, sep } from 'node:path';
 const root = dirname(fileURLToPath(import.meta.url));
@@ -16,6 +16,14 @@ const server = createServer(async (request, response) => {
     if (!file.startsWith(root + sep) || relative.split(sep).some(part => part.startsWith('.')) ||
         !(relative === 'index.html' || relative.startsWith('js' + sep) || relative.startsWith('css' + sep))) {
       response.writeHead(404); response.end(); return;
+    }
+    let cursor = root;
+    for (const part of relative.split(sep)) {
+      cursor += sep + part;
+      const stat = await lstat(cursor).catch(() => null);
+      if (stat === null || stat.isSymbolicLink()) {
+        response.writeHead(404); response.end(); return;
+      }
     }
     const data = await readFile(file);
     response.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
