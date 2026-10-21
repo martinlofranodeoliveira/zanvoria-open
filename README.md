@@ -727,3 +727,84 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_leaderboard_submit_guard.test.js`.
+
+
+<!-- community-core:wildbound-mute-flag-guard -->
+### Wildbound Mute Flag Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented mute-callback boolean coercion so muted versus unmuted decisions can be unit-tested as pure JSON without SDK, storage, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_mute_flag_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkMuteFlag and checkMuteFlagBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-mute-flag or check-mute-flag-batch and a value field. For check-mute-flag value must be a plain object with exactly key muted. muted must be null, boolean, finite safe number within plus-minus 9007199254740991, or string length 0 to 32 where each character verified with for-of is valid Unicode without unpaired surrogates and not a C0 control except LF, CR or TAB. When well-formed return ok true with kind echo and value holding alphabetically ordered issues, muted, mutedState and valid. muted echoes input; mutedState equals false when muted is null, false, zero, or empty string else true, mirroring double-negation coercion for the allowed domain; valid true with issues empty. When muted malformed return ok true with kind echo and value holding same four keys where valid false, mutedState null, muted echoes when null, boolean, number or string else null, and issues holding single bad-mute-flag. For check-mute-flag-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a mute-flag value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-mute-flag-batch and value holding results array where each result holds the four ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local mute-callback boolean coercion and never performs SDK, storage, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-mute-flag",
+    "value": {
+      "muted": false
+    }
+  },
+  "output": {
+    "kind": "check-mute-flag",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "muted": false,
+      "mutedState": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-mute-flag",
+    "value": {
+      "muted": "on"
+    }
+  },
+  "output": {
+    "kind": "check-mute-flag",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "muted": "on",
+      "mutedState": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-mute-flag",
+    "value": {
+      "muted": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-mute-flag",
+    "ok": true,
+    "value": {
+      "issues": [
+        "bad-mute-flag"
+      ],
+      "muted": null,
+      "mutedState": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_mute_flag_guard.test.js`.
