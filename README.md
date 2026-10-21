@@ -99,3 +99,111 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_local_score_guard.test.js`.
+
+
+<!-- community-core:wildbound-preview-route-guard -->
+### Wildbound Preview Route Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented loopback preview method and path gating so allowed versus denied route decisions can be unit-tested as pure JSON without server, storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_preview_route_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkPreviewRoute and checkPreviewRouteBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-preview-route or check-preview-route-batch and a value field. For check-preview-route value must be a plain object with exactly keys isSymlink, method, target and traversesSymlink. isSymlink must be boolean, traversesSymlink must be boolean, method must be string length 1 to 8 where each character verified with for-of is A-Z, target must be string length 1 to 128 starting with slash where each character verified with for-of is letter digit slash dot hyphen or underscore. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, blockedReason, cache, isSymlink, issues, method, status, target, traversesSymlink and valid. valid true with issues empty; method target isSymlink traversesSymlink echo input; status is 405 with allowed false cache null blockedReason method-not-allowed when method is not GET or HEAD, else 404 with allowed false cache null when isSymlink true or traversesSymlink true with blockedReason symlink-denied, else when any slash-separated segment starts with dot with blockedReason dotfile-denied, else when any slash-separated segment equals double-dot with blockedReason traversal-denied, else when target is not slash or slash-index.html or does not start with slash-js-slash or slash-css-slash with blockedReason not-found, else 200 with allowed true cache no-store blockedReason null. When any field malformed return ok true with kind echo and value holding same ten keys where valid false, allowed false, status null, cache null, blockedReason null, method echoes when string else null, target echoes when string else null, isSymlink echoes when boolean else null, traversesSymlink echoes when boolean else null, and issues holds one or more of bad-method, bad-target, bad-symlink-flag and bad-traversal-flag in that deterministic order. For check-preview-route-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a preview-route value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-preview-route-batch and value holding results array where each result holds the ten ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented loopback preview method and path gating with Cache-Control no-store and never performs server, storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-preview-route",
+    "value": {
+      "isSymlink": false,
+      "method": "GET",
+      "target": "/js/game.js",
+      "traversesSymlink": false
+    }
+  },
+  "output": {
+    "kind": "check-preview-route",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "blockedReason": null,
+      "cache": "no-store",
+      "isSymlink": false,
+      "issues": [],
+      "method": "GET",
+      "status": 200,
+      "target": "/js/game.js",
+      "traversesSymlink": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-preview-route",
+    "value": {
+      "isSymlink": false,
+      "method": "POST",
+      "target": "/index.html",
+      "traversesSymlink": false
+    }
+  },
+  "output": {
+    "kind": "check-preview-route",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "blockedReason": "method-not-allowed",
+      "cache": null,
+      "isSymlink": false,
+      "issues": [],
+      "method": "POST",
+      "status": 405,
+      "target": "/index.html",
+      "traversesSymlink": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-preview-route",
+    "value": {
+      "isSymlink": false,
+      "method": "GET",
+      "target": {
+        "x": 1
+      },
+      "traversesSymlink": false
+    }
+  },
+  "output": {
+    "kind": "check-preview-route",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "blockedReason": null,
+      "cache": null,
+      "isSymlink": false,
+      "issues": [
+        "bad-target"
+      ],
+      "method": "GET",
+      "status": null,
+      "target": null,
+      "traversesSymlink": false,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_preview_route_guard.test.js`.
