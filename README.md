@@ -910,3 +910,89 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_ad_request_guard.test.js`.
+
+
+<!-- community-core:wildbound-settings-document-guard -->
+### Wildbound Settings Document Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented local-only settings JSON fallback so settings shape and String persistence sizing can be unit-tested as pure JSON without storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_settings_document_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkSettingsDocument and checkSettingsDocumentBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-settings-document or check-settings-document-batch and a value field. For check-settings-document value must be a plain object with exactly key settings. settings must be a plain object with 0 to 8 keys where each key length 1 to 32 with each character verified with for-of is A-Z a-z 0-9 hyphen or underscore and each value is null, boolean, finite safe number within plus-minus 9007199254740991, or string length 0 to 64 where each character verified with for-of is valid Unicode without unpaired surrogates and not a C0 control except LF CR or TAB. When well-formed return ok true with kind echo and value holding alphabetically ordered issues, settings, storable, storedLength and valid. settings echoes input with keys ordered alphabetically; valid true with issues empty; storable true with storedLength equal to length of JSON.stringify of the ordered settings. When settings malformed return ok true with kind echo and value holding same five keys where valid false, storable false, storedLength null, settings echoes ordered input when plain object else null, and issues holding single bad-settings. For check-settings-document-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a settings wrapper object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-settings-document-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local settings JSON handling with localStorage fallback and never performs storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-settings-document",
+    "value": {
+      "settings": {}
+    }
+  },
+  "output": {
+    "kind": "check-settings-document",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "settings": {},
+      "storable": true,
+      "storedLength": 2,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-settings-document",
+    "value": {
+      "settings": {
+        "volume": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-settings-document",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "settings": {
+        "volume": 1
+      },
+      "storable": true,
+      "storedLength": 12,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-settings-document",
+    "value": {
+      "settings": "loud"
+    }
+  },
+  "output": {
+    "kind": "check-settings-document",
+    "ok": true,
+    "value": {
+      "issues": [
+        "bad-settings"
+      ],
+      "settings": null,
+      "storable": false,
+      "storedLength": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_settings_document_guard.test.js`.
