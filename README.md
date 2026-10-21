@@ -291,3 +291,87 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_local_store_guard.test.js`.
+
+
+<!-- community-core:wildbound-bridge-method-guard -->
+### Wildbound Bridge Method Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented CrazyBridge method allowlisting so bridge call gating can be unit-tested as pure JSON without storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_bridge_method_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkBridgeMethod and checkBridgeMethodBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-bridge-method or check-bridge-method-batch and a value field. For check-bridge-method value must be a plain object with exactly key method. method must be string length 1 to 32 where each character verified with for-of is A-Z or a-z. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, issues, method, reason and valid. method echoes input; valid true with issues empty; allowed true with reason null only when method equals init or loadingStart or loadingStop or gameplayStart or gameplayStop or getSave or setSave or getSettings or setSettings or requestAd or onMuteChange or submitScore or isCrazyGames else allowed false with reason unlisted-method. When method malformed return ok true with kind echo and value holding same five keys where valid false, allowed false, reason null, method echoes when string else null, and issues holding single bad-method. For check-bridge-method-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a bridge-method value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-bridge-method-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented CrazyBridge method allowlisting and never performs storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-bridge-method",
+    "value": {
+      "method": "getSave"
+    }
+  },
+  "output": {
+    "kind": "check-bridge-method",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "issues": [],
+      "method": "getSave",
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-bridge-method",
+    "value": {
+      "method": "submitHighScore"
+    }
+  },
+  "output": {
+    "kind": "check-bridge-method",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "issues": [],
+      "method": "submitHighScore",
+      "reason": "unlisted-method",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-bridge-method",
+    "value": {
+      "method": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-bridge-method",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "issues": [
+        "bad-method"
+      ],
+      "method": null,
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_bridge_method_guard.test.js`.
