@@ -1090,3 +1090,87 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_encrypt_config_guard.test.js`.
+
+
+<!-- community-core:wildbound-asset-fallback-guard -->
+### Wildbound Asset Fallback Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented procedural canvas fallback and browser-generated sound versus excluded images, 3D files, recorded voices and marketing material so asset allowlisting decisions can be unit-tested as pure JSON without storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_asset_fallback_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkAssetFallback and checkAssetFallbackBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-asset-fallback or check-asset-fallback-batch and a value field. For check-asset-fallback value must be a plain object with exactly key assetKind. assetKind must be string length 1 to 48 where each character verified with for-of is a-z or hyphen. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, assetKind, issues, reason and valid. assetKind echoes input; valid true with issues empty; allowed true with reason null only when assetKind equals procedural-canvas or browser-sound else allowed false with reason excluded-asset. When assetKind malformed return ok true with kind echo and value holding same five keys where valid false, allowed false, reason null, assetKind echoes when string else null, and issues holding single bad-asset-kind. For check-asset-fallback-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an asset-fallback value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-asset-fallback-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented procedural canvas fallback and browser-generated sound versus excluded images, 3D files, recorded voices and marketing material and never performs network, storage, SDK, leaderboard submission, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-asset-fallback",
+    "value": {
+      "assetKind": "procedural-canvas"
+    }
+  },
+  "output": {
+    "kind": "check-asset-fallback",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "assetKind": "procedural-canvas",
+      "issues": [],
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-asset-fallback",
+    "value": {
+      "assetKind": "image"
+    }
+  },
+  "output": {
+    "kind": "check-asset-fallback",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "assetKind": "image",
+      "issues": [],
+      "reason": "excluded-asset",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-asset-fallback",
+    "value": {
+      "assetKind": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-asset-fallback",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "assetKind": null,
+      "issues": [
+        "bad-asset-kind"
+      ],
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_asset_fallback_guard.test.js`.
