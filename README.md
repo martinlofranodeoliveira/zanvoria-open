@@ -631,3 +631,99 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_npm_script_guard.test.js`.
+
+
+<!-- community-core:wildbound-leaderboard-submit-guard -->
+### Wildbound Leaderboard Submit Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented leaderboard-not-configured local fallback so SDK submit gating decisions can be unit-tested as pure JSON without SDK, network, storage, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_leaderboard_submit_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkLeaderboardSubmit and checkLeaderboardSubmitBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-leaderboard-submit or check-leaderboard-submit-batch and a value field. For check-leaderboard-submit value must be a plain object with exactly keys hasKey, hasSubmitApi and usingCrazyGames. hasKey must be boolean, hasSubmitApi must be boolean, usingCrazyGames must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered hasKey, hasSubmitApi, issues, reason, submitted, usingCrazyGames and valid. hasKey, hasSubmitApi and usingCrazyGames echo input; valid true with issues empty; submitted true with reason null only when hasKey true and hasSubmitApi true and usingCrazyGames true else submitted false with reason leaderboard-not-configured. When any field malformed return ok true with kind echo and value holding same seven keys where valid false, submitted false, reason null, hasKey echoes when boolean else null, hasSubmitApi echoes when boolean else null, usingCrazyGames echoes when boolean else null, and issues holds one or more of bad-key-flag, bad-api-flag and bad-sdk-flag in that deterministic order. For check-leaderboard-submit-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a leaderboard-submit value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-leaderboard-submit-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local fallback when SDK submit API or leaderboard key is missing and never performs network, storage, SDK, leaderboard submission, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-leaderboard-submit",
+    "value": {
+      "hasKey": true,
+      "hasSubmitApi": true,
+      "usingCrazyGames": true
+    }
+  },
+  "output": {
+    "kind": "check-leaderboard-submit",
+    "ok": true,
+    "value": {
+      "hasKey": true,
+      "hasSubmitApi": true,
+      "issues": [],
+      "reason": null,
+      "submitted": true,
+      "usingCrazyGames": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-leaderboard-submit",
+    "value": {
+      "hasKey": true,
+      "hasSubmitApi": true,
+      "usingCrazyGames": false
+    }
+  },
+  "output": {
+    "kind": "check-leaderboard-submit",
+    "ok": true,
+    "value": {
+      "hasKey": true,
+      "hasSubmitApi": true,
+      "issues": [],
+      "reason": "leaderboard-not-configured",
+      "submitted": false,
+      "usingCrazyGames": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-leaderboard-submit",
+    "value": {
+      "hasKey": true,
+      "hasSubmitApi": true,
+      "usingCrazyGames": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-leaderboard-submit",
+    "ok": true,
+    "value": {
+      "hasKey": true,
+      "hasSubmitApi": true,
+      "issues": [
+        "bad-sdk-flag"
+      ],
+      "reason": null,
+      "submitted": false,
+      "usingCrazyGames": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_leaderboard_submit_guard.test.js`.
