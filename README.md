@@ -808,3 +808,105 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_mute_flag_guard.test.js`.
+
+
+<!-- community-core:wildbound-ad-request-guard -->
+### Wildbound Ad Request Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented ad-request gating fallback so ads-enabled versus ad-not-available decisions can be unit-tested as pure JSON without SDK, network, storage, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_ad_request_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkAdRequest and checkAdRequestBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-ad-request or check-ad-request-batch and a value field. For check-ad-request value must be a plain object with exactly keys adsEnabled, hasAdApi, reason and usingCrazyGames. adsEnabled must be boolean, hasAdApi must be boolean, usingCrazyGames must be boolean, reason must be string length 1 to 32 where each character verified with for-of is A-Z, a-z or hyphen. When well-formed return ok true with kind echo and value holding alphabetically ordered adsEnabled, blockReason, hasAdApi, issues, reason, requested, usingCrazyGames and valid. adsEnabled, hasAdApi, reason and usingCrazyGames echo input; valid true with issues empty; requested true with blockReason null only when adsEnabled true and hasAdApi true and usingCrazyGames true else requested false with blockReason ad-not-available. When any field malformed return ok true with kind echo and value holding same eight keys where valid false, requested false, blockReason null, adsEnabled echoes when boolean else null, hasAdApi echoes when boolean else null, usingCrazyGames echoes when boolean else null, reason echoes when string else null, and issues holds one or more of bad-ads-flag, bad-api-flag, bad-ad-reason and bad-sdk-flag in that deterministic order. For check-ad-request-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an ad-request value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-ad-request-batch and value holding results array where each result holds the eight ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local ad-request gating when ads are disabled or SDK ad API is missing and never performs network, storage, SDK, ad playback, leaderboard, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-ad-request",
+    "value": {
+      "adsEnabled": true,
+      "hasAdApi": true,
+      "reason": "midgame",
+      "usingCrazyGames": true
+    }
+  },
+  "output": {
+    "kind": "check-ad-request",
+    "ok": true,
+    "value": {
+      "adsEnabled": true,
+      "blockReason": null,
+      "hasAdApi": true,
+      "issues": [],
+      "reason": "midgame",
+      "requested": true,
+      "usingCrazyGames": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-ad-request",
+    "value": {
+      "adsEnabled": false,
+      "hasAdApi": true,
+      "reason": "midgame",
+      "usingCrazyGames": true
+    }
+  },
+  "output": {
+    "kind": "check-ad-request",
+    "ok": true,
+    "value": {
+      "adsEnabled": false,
+      "blockReason": "ad-not-available",
+      "hasAdApi": true,
+      "issues": [],
+      "reason": "midgame",
+      "requested": false,
+      "usingCrazyGames": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-ad-request",
+    "value": {
+      "adsEnabled": true,
+      "hasAdApi": true,
+      "reason": {
+        "x": 1
+      },
+      "usingCrazyGames": true
+    }
+  },
+  "output": {
+    "kind": "check-ad-request",
+    "ok": true,
+    "value": {
+      "adsEnabled": true,
+      "blockReason": null,
+      "hasAdApi": true,
+      "issues": [
+        "bad-ad-reason"
+      ],
+      "reason": null,
+      "requested": false,
+      "usingCrazyGames": true,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_ad_request_guard.test.js`.
