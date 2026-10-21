@@ -207,3 +207,87 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_preview_route_guard.test.js`.
+
+
+<!-- community-core:wildbound-local-store-guard -->
+### Wildbound Local Store Key Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented local-only storage keys so save, settings and last-score key allowlisting can be unit-tested as pure JSON without storage, SDK, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_local_store_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkStoreKey and checkStoreKeyBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-store-key or check-store-key-batch and a value field. For check-store-key value must be a plain object with exactly key storeKey. storeKey must be string length 1 to 64 where each character verified with for-of is A-Za-z0-9 colon hyphen or underscore. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, issues, reason, storeKey and valid. storeKey echoes input; valid true with issues empty; allowed true with reason null only when storeKey equals aether-rift:wildbound:save or aether-rift:wildbound:settings or aether-rift:wildbound:last-score else allowed false with reason unlisted-key. When storeKey malformed return ok true with kind echo and value holding same five keys where valid false, allowed false, reason null, storeKey echoes when string else null, and issues holding single bad-store-key. For check-store-key-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a store-key value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-store-key-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local-only storage keys for saves settings and last-score with String storage and never performs storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-store-key",
+    "value": {
+      "storeKey": "aether-rift:wildbound:save"
+    }
+  },
+  "output": {
+    "kind": "check-store-key",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "issues": [],
+      "reason": null,
+      "storeKey": "aether-rift:wildbound:save",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-store-key",
+    "value": {
+      "storeKey": "aether-rift:wildbound:other"
+    }
+  },
+  "output": {
+    "kind": "check-store-key",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "issues": [],
+      "reason": "unlisted-key",
+      "storeKey": "aether-rift:wildbound:other",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-store-key",
+    "value": {
+      "storeKey": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-store-key",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "issues": [
+        "bad-store-key"
+      ],
+      "reason": null,
+      "storeKey": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_local_store_guard.test.js`.
