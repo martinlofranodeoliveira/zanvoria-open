@@ -457,3 +457,93 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_node_engine_guard.test.js`.
+
+
+<!-- community-core:wildbound-loopback-bind-guard -->
+### Wildbound Loopback Bind Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented 127.0.0.1-only preview binding so loopback versus non-loopback host decisions and port shape can be unit-tested as pure JSON without server, storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_loopback_bind_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkLoopbackBind and checkLoopbackBindBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-loopback-bind or check-loopback-bind-batch and a value field. For check-loopback-bind value must be a plain object with exactly keys host and port. host must be string length 1 to 64 where each character verified with for-of is digit 0-9 or dot, port must be finite safe number within 0 to 65535 with Math.floor(port) equal to port. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, host, issues, port, reason and valid. host and port echo input; valid true with issues empty; allowed true with reason null only when host equals 127.0.0.1 else allowed false with reason non-loopback-host. When any field malformed return ok true with kind echo and value holding same six keys where valid false, allowed false, reason null, host echoes when string else null, port echoes when number else null, and issues holds one or more of bad-host and bad-port in that deterministic order. For check-loopback-bind-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a loopback-bind value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-loopback-bind-batch and value holding results array where each result holds the six ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented loopback 127.0.0.1 binding with PORT 0 ephemeral support and never performs server, storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-loopback-bind",
+    "value": {
+      "host": "127.0.0.1",
+      "port": 8080
+    }
+  },
+  "output": {
+    "kind": "check-loopback-bind",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "host": "127.0.0.1",
+      "issues": [],
+      "port": 8080,
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-loopback-bind",
+    "value": {
+      "host": "0.0.0.0",
+      "port": 8080
+    }
+  },
+  "output": {
+    "kind": "check-loopback-bind",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "host": "0.0.0.0",
+      "issues": [],
+      "port": 8080,
+      "reason": "non-loopback-host",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-loopback-bind",
+    "value": {
+      "host": {
+        "x": 1
+      },
+      "port": 8080
+    }
+  },
+  "output": {
+    "kind": "check-loopback-bind",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "host": null,
+      "issues": [
+        "bad-host"
+      ],
+      "port": 8080,
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_loopback_bind_guard.test.js`.
