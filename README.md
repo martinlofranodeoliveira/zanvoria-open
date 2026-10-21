@@ -375,3 +375,85 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_bridge_method_guard.test.js`.
+
+
+<!-- community-core:wildbound-node-engine-guard -->
+### Wildbound Node Engine Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented Node.js 22-or-later requirement so engine gating can be unit-tested as pure JSON without toolchain, server, storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_node_engine_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkNodeEngine and checkNodeEngineBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-node-engine or check-node-engine-batch and a value field. For check-node-engine value must be a plain object with exactly key major. major must be finite safe number within 0 to 1000 with Math.floor(major) equal to major. When well-formed return ok true with kind echo and value holding alphabetically ordered issues, major, reason, supported and valid. major echoes input; valid true with issues empty; supported true with reason null only when major is at least 22 else supported false with reason engine-too-old. When major malformed return ok true with kind echo and value holding same five keys where valid false, supported false, reason null, major echoes when number else null, and issues holding single bad-major. For check-node-engine-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a node-engine value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-node-engine-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented Node 22-or-later requirement and never performs toolchain, server, storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-node-engine",
+    "value": {
+      "major": 22
+    }
+  },
+  "output": {
+    "kind": "check-node-engine",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "major": 22,
+      "reason": null,
+      "supported": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-node-engine",
+    "value": {
+      "major": 16
+    }
+  },
+  "output": {
+    "kind": "check-node-engine",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "major": 16,
+      "reason": "engine-too-old",
+      "supported": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-node-engine",
+    "value": {
+      "major": "22"
+    }
+  },
+  "output": {
+    "kind": "check-node-engine",
+    "ok": true,
+    "value": {
+      "issues": [
+        "bad-major"
+      ],
+      "major": null,
+      "reason": null,
+      "supported": false,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_node_engine_guard.test.js`.
