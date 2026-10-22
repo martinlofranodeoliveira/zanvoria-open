@@ -1707,3 +1707,91 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_save_source_guard.test.js`.
+
+
+<!-- community-core:wildbound-save-write-guard -->
+### Wildbound Save Write Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented local-always plus SDK-conditional save write fanout so local versus SDK write decisions can be unit-tested as pure JSON without storage, SDK, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_save_write_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkSaveWrite and checkSaveWriteBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-save-write or check-save-write-batch and a value field. For check-save-write value must be a plain object with exactly keys sdkWritable and usingCrazyGames. sdkWritable must be boolean, usingCrazyGames must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered issues, localWrite, sdkWrite, sdkWritable, usingCrazyGames and valid. sdkWritable usingCrazyGames echo input; valid true with issues empty; localWrite true; sdkWrite true when usingCrazyGames true and sdkWritable true else false. When any field malformed return ok true with kind echo and value holding same six keys where valid false, localWrite null, sdkWrite null, sdkWritable echoes when boolean else null, usingCrazyGames echoes when boolean else null, and issues holds one or more of bad-sdk-writable and bad-using-flag in that deterministic order. For check-save-write-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a save-write value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-save-write-batch and value holding results array where each result holds the six ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests, with top-level keys ordered alphabetically. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local-always save write with SDK-conditional fanout using JSON storage and never performs storage, SDK, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_save_write_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-save-write",
+    "value": {
+      "sdkWritable": true,
+      "usingCrazyGames": true
+    }
+  },
+  "output": {
+    "kind": "check-save-write",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "localWrite": true,
+      "sdkWritable": true,
+      "sdkWrite": true,
+      "usingCrazyGames": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-save-write",
+    "value": {
+      "sdkWritable": true,
+      "usingCrazyGames": false
+    }
+  },
+  "output": {
+    "kind": "check-save-write",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "localWrite": true,
+      "sdkWritable": true,
+      "sdkWrite": false,
+      "usingCrazyGames": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-save-write",
+    "value": {
+      "sdkWritable": "yes",
+      "usingCrazyGames": true
+    }
+  },
+  "output": {
+    "kind": "check-save-write",
+    "ok": true,
+    "value": {
+      "issues": [
+        "bad-sdk-writable"
+      ],
+      "localWrite": null,
+      "sdkWritable": null,
+      "sdkWrite": null,
+      "usingCrazyGames": true,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_save_write_guard.test.js`.
