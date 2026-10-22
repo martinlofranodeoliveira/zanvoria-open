@@ -1613,3 +1613,97 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_sdk_timeout_guard.test.js`.
+
+
+<!-- community-core:wildbound-save-source-guard -->
+### Wildbound Save Source Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented local-fallback save read resolution so sdk-versus-local-versus-empty source decisions can be unit-tested as pure JSON without storage, SDK, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_save_source_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkSaveSource and checkSaveSourceBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-save-source or check-save-source-batch and a value field. For check-save-source value must be a plain object with exactly keys localValue, sdkAvailable and sdkValue. sdkAvailable must be boolean, sdkValue must be null or string length 0 to 512 without C0 controls except LF CR TAB verified with for-of, localValue must be null or string length 0 to 512 without C0 controls except LF CR TAB verified with for-of. When well-formed return ok true with kind echo and value holding alphabetically ordered issues, localValue, resolved, sdkAvailable, sdkValue, source and valid. localValue sdkAvailable sdkValue echo input; valid true with issues empty; source is sdk when sdkAvailable true and sdkValue not null else local when localValue not null else empty; resolved is sdkValue when source sdk else localValue when source local else null. When any field malformed return ok true with kind echo and value holding same seven keys where valid false, source null, resolved null, sdkAvailable echoes when boolean else null, sdkValue echoes when null or string else null, localValue echoes when null or string else null, and issues holds one or more of bad-sdk-flag, bad-sdk-value and bad-local-value in that deterministic order. For check-save-source-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a save-source value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-save-source-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local-fallback save read with SDK value when available else localStorage value else null and never performs storage, SDK, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_save_source_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-save-source",
+    "value": {
+      "localValue": "{\"level\":1}",
+      "sdkAvailable": true,
+      "sdkValue": "{\"level\":2}"
+    }
+  },
+  "output": {
+    "kind": "check-save-source",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "localValue": "{\"level\":1}",
+      "resolved": "{\"level\":2}",
+      "sdkAvailable": true,
+      "sdkValue": "{\"level\":2}",
+      "source": "sdk",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-save-source",
+    "value": {
+      "localValue": "{\"level\":1}",
+      "sdkAvailable": false,
+      "sdkValue": null
+    }
+  },
+  "output": {
+    "kind": "check-save-source",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "localValue": "{\"level\":1}",
+      "resolved": "{\"level\":1}",
+      "sdkAvailable": false,
+      "sdkValue": null,
+      "source": "local",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-save-source",
+    "value": {
+      "localValue": 1,
+      "sdkAvailable": true,
+      "sdkValue": null
+    }
+  },
+  "output": {
+    "kind": "check-save-source",
+    "ok": true,
+    "value": {
+      "issues": [
+        "bad-local-value"
+      ],
+      "localValue": null,
+      "resolved": null,
+      "sdkAvailable": true,
+      "sdkValue": null,
+      "source": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_save_source_guard.test.js`.
