@@ -1345,3 +1345,90 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_preview_port_guard.test.js`.
+
+
+<!-- community-core:wildbound-lifecycle-phase-guard -->
+### Wildbound Lifecycle Phase Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented loading versus gameplay start and stop phases so lifecycle phase normalization decisions can be unit-tested as pure JSON without SDK, storage, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_lifecycle_phase_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkLifecyclePhase and checkLifecyclePhaseBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-lifecycle-phase or check-lifecycle-phase-batch and a value field. For check-lifecycle-phase value must be a plain object with exactly key event. event must be string length 1 to 32 where each character verified with for-of is A-Za-z. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, event, issues, phase, reason and valid. event echoes input; valid true with issues empty; allowed true with phase loading and reason null when event equals loadingStart or loadingStop, allowed true with phase gameplay and reason null when event equals gameplayStart or gameplayStop, else allowed false with phase null and reason unlisted-event. When event malformed return ok true with kind echo and value holding same six keys where valid false, allowed false, phase null, reason null, event echoes when string else null, and issues holding single bad-event. For check-lifecycle-phase-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a lifecycle-phase value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-lifecycle-phase-batch and value holding results array where each result holds the six ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests and kind unknown when kind missing or unknown else input kind, with top-level keys ordered alphabetically. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented loadingStart, loadingStop, gameplayStart and gameplayStop phases with local fallback and never performs SDK, storage, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_lifecycle_phase_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-lifecycle-phase",
+    "value": {
+      "event": "loadingStart"
+    }
+  },
+  "output": {
+    "kind": "check-lifecycle-phase",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "event": "loadingStart",
+      "issues": [],
+      "phase": "loading",
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-lifecycle-phase",
+    "value": {
+      "event": "gameplayStop"
+    }
+  },
+  "output": {
+    "kind": "check-lifecycle-phase",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "event": "gameplayStop",
+      "issues": [],
+      "phase": "gameplay",
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-lifecycle-phase",
+    "value": {
+      "event": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-lifecycle-phase",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "event": null,
+      "issues": [
+        "bad-event"
+      ],
+      "phase": null,
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_lifecycle_phase_guard.test.js`.
