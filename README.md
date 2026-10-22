@@ -1432,3 +1432,94 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_lifecycle_phase_guard.test.js`.
+
+
+<!-- community-core:wildbound-platform-init-guard -->
+### Wildbound Platform Init Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented platform init idempotence and local-fallback versus CrazyGames mode so initialized and usingCrazyGames flag decisions can be unit-tested as pure JSON without SDK, storage, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_platform_init_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkPlatformInit and checkPlatformInitBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-platform-init or check-platform-init-batch and a value field. For check-platform-init value must be a plain object with exactly keys initialized and usingCrazyGames. initialized must be boolean, usingCrazyGames must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, initialized, issues, mode, reason, usingCrazyGames and valid. initialized and usingCrazyGames echo input; valid true with issues empty; when initialized false and usingCrazyGames false allowed true with mode uninitialized and reason null; when initialized true and usingCrazyGames false allowed true with mode local-fallback and reason null; when initialized true and usingCrazyGames true allowed true with mode crazygames and reason null; when initialized false and usingCrazyGames true allowed false with mode null and reason inconsistent-flags. When any field malformed return ok true with kind echo and value holding same seven keys where valid false, allowed false, mode null, reason null, initialized echoes when boolean else null, usingCrazyGames echoes when boolean else null, and issues holds one or more of bad-initialized and bad-using-crazy-games in that deterministic order. For check-platform-init-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a platform-init value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-platform-init-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented init idempotence with initialized once and usingCrazyGames local-fallback versus CrazyGames mode and never performs SDK, server, storage, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_platform_init_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-platform-init",
+    "value": {
+      "initialized": false,
+      "usingCrazyGames": false
+    }
+  },
+  "output": {
+    "kind": "check-platform-init",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "initialized": false,
+      "issues": [],
+      "mode": "uninitialized",
+      "reason": null,
+      "usingCrazyGames": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-platform-init",
+    "value": {
+      "initialized": true,
+      "usingCrazyGames": true
+    }
+  },
+  "output": {
+    "kind": "check-platform-init",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "initialized": true,
+      "issues": [],
+      "mode": "crazygames",
+      "reason": null,
+      "usingCrazyGames": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-platform-init",
+    "value": {
+      "initialized": "yes",
+      "usingCrazyGames": false
+    }
+  },
+  "output": {
+    "kind": "check-platform-init",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "initialized": null,
+      "issues": [
+        "bad-initialized"
+      ],
+      "mode": null,
+      "reason": null,
+      "usingCrazyGames": false,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_platform_init_guard.test.js`.
