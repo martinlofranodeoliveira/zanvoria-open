@@ -1523,3 +1523,93 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_platform_init_guard.test.js`.
+
+
+<!-- community-core:wildbound-sdk-timeout-guard -->
+### Wildbound SDK Timeout Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented 1400ms SDK init timeout so timeout-value decisions can be unit-tested as pure JSON without SDK, storage, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_sdk_timeout_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkSdkTimeout and checkSdkTimeoutBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-sdk-timeout or check-sdk-timeout-batch and a value field. For check-sdk-timeout value must be a plain object with exactly key timeoutMs. timeoutMs must be a finite safe integer number within plus-minus 9007199254740991. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, expected, issues, matched, reason, timeoutMs and valid. timeoutMs echoes input; expected is 1400; valid true with issues empty; matched true when timeoutMs equals 1400 else false; allowed true when matched else false; reason null when matched else nonstandard-timeout. When timeoutMs malformed return ok true with kind echo and value holding same seven keys where valid false, allowed false, matched false, expected 1400, reason null, timeoutMs echoes when number else null, and issues holding single bad-timeout. For check-sdk-timeout-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a timeout value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-sdk-timeout-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented 1400ms SDK init timeout with fallback and never performs SDK, storage, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core with API runFeature(payload). This module is independently tested; application integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-sdk-timeout",
+    "value": {
+      "timeoutMs": 1400
+    }
+  },
+  "output": {
+    "kind": "check-sdk-timeout",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "expected": 1400,
+      "issues": [],
+      "matched": true,
+      "reason": null,
+      "timeoutMs": 1400,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-sdk-timeout",
+    "value": {
+      "timeoutMs": 1000
+    }
+  },
+  "output": {
+    "kind": "check-sdk-timeout",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "expected": 1400,
+      "issues": [],
+      "matched": false,
+      "reason": "nonstandard-timeout",
+      "timeoutMs": 1000,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-sdk-timeout",
+    "value": {
+      "timeoutMs": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-sdk-timeout",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "expected": 1400,
+      "issues": [
+        "bad-timeout"
+      ],
+      "matched": false,
+      "reason": null,
+      "timeoutMs": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_sdk_timeout_guard.test.js`.
