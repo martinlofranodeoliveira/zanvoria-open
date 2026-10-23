@@ -1886,3 +1886,102 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_ad_enable_guard.test.js`.
+
+
+<!-- community-core:wildbound-local-play-guard -->
+### Wildbound Local Play Scope Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented browser-local gameplay and score scope so local gameplay, local scores, no cloud leaderboard and no SDK download claims can be unit-tested as pure JSON without storage, SDK, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_local_play_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkLocalPlay and checkLocalPlayBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-local-play or check-local-play-batch and a value field. For check-local-play value must be a plain object with exactly keys advertisesLocalGameplay, advertisesLocalScores, advertisesNoCloudLeaderboard and advertisesNoSdkDownload. Each flag must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered advertisesLocalGameplay, advertisesLocalScores, advertisesNoCloudLeaderboard, advertisesNoSdkDownload, complete, issues and valid. Flags echo input; valid true; complete true only when all four flags true else false; issues empty when complete else holds one or more of missing-local-gameplay, missing-local-scores, missing-no-cloud-leaderboard and missing-no-sdk-download in that deterministic order for each false flag. When any flag malformed return ok true with kind echo and value holding same seven keys where valid false, complete false, flags echo when boolean else null, and issues holds one or more of bad-local-gameplay, bad-local-scores, bad-no-cloud-leaderboard and bad-no-sdk-download in that deterministic order. For check-local-play-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a local-play value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-local-play-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented browser-local gameplay and scores with no cloud leaderboard and no SDK download and never performs storage, SDK, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_local_play_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-local-play",
+    "value": {
+      "advertisesLocalGameplay": true,
+      "advertisesLocalScores": true,
+      "advertisesNoCloudLeaderboard": true,
+      "advertisesNoSdkDownload": true
+    }
+  },
+  "output": {
+    "kind": "check-local-play",
+    "ok": true,
+    "value": {
+      "advertisesLocalGameplay": true,
+      "advertisesLocalScores": true,
+      "advertisesNoCloudLeaderboard": true,
+      "advertisesNoSdkDownload": true,
+      "complete": true,
+      "issues": [],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-local-play",
+    "value": {
+      "advertisesLocalGameplay": true,
+      "advertisesLocalScores": true,
+      "advertisesNoCloudLeaderboard": false,
+      "advertisesNoSdkDownload": true
+    }
+  },
+  "output": {
+    "kind": "check-local-play",
+    "ok": true,
+    "value": {
+      "advertisesLocalGameplay": true,
+      "advertisesLocalScores": true,
+      "advertisesNoCloudLeaderboard": false,
+      "advertisesNoSdkDownload": true,
+      "complete": false,
+      "issues": [
+        "missing-no-cloud-leaderboard"
+      ],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-local-play",
+    "value": {
+      "advertisesLocalGameplay": true,
+      "advertisesLocalScores": "yes",
+      "advertisesNoCloudLeaderboard": true,
+      "advertisesNoSdkDownload": true
+    }
+  },
+  "output": {
+    "kind": "check-local-play",
+    "ok": true,
+    "value": {
+      "advertisesLocalGameplay": true,
+      "advertisesLocalScores": null,
+      "advertisesNoCloudLeaderboard": true,
+      "advertisesNoSdkDownload": true,
+      "complete": false,
+      "issues": [
+        "bad-local-scores"
+      ],
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_local_play_guard.test.js`.
