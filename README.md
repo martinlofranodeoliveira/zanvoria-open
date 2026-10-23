@@ -1985,3 +1985,102 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_local_play_guard.test.js`.
+
+
+<!-- community-core:wildbound-notice-separation-guard -->
+### Wildbound Notice Separation Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented private-original separation so private-preserved, history-separate, NOTICE reference and excluded-media no-redistribution claims can be unit-tested as pure JSON without storage, SDK, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_notice_separation_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkNoticeSeparation and checkNoticeSeparationBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-notice-separation or check-notice-separation-batch and a value field. For check-notice-separation value must be a plain object with exactly keys advertisesExcludedNoRedistribution, advertisesHistorySeparate, advertisesNoticeReference and advertisesPrivatePreserved. Each flag must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered advertisesExcludedNoRedistribution, advertisesHistorySeparate, advertisesNoticeReference, advertisesPrivatePreserved, complete, issues and valid. Flags echo input; valid true; complete true only when all four flags true else false; issues empty when complete else holds one or more of missing-excluded-no-redistribution, missing-history-separate, missing-notice-reference and missing-private-preserved in that deterministic order for each false flag. When any flag malformed return ok true with kind echo and value holding same seven keys where valid false, complete false, flags echo when boolean else null, and issues holds one or more of bad-excluded-no-redistribution, bad-history-separate, bad-notice-reference and bad-private-preserved in that deterministic order. For check-notice-separation-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a notice-separation value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-notice-separation-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented private-original separation with private preserved separately and history separate plus NOTICE pointer and excluded images, 3D files, recorded voices and marketing material withheld for missing redistribution rights and never performs storage, SDK, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_notice_separation_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-notice-separation",
+    "value": {
+      "advertisesExcludedNoRedistribution": true,
+      "advertisesHistorySeparate": true,
+      "advertisesNoticeReference": true,
+      "advertisesPrivatePreserved": true
+    }
+  },
+  "output": {
+    "kind": "check-notice-separation",
+    "ok": true,
+    "value": {
+      "advertisesExcludedNoRedistribution": true,
+      "advertisesHistorySeparate": true,
+      "advertisesNoticeReference": true,
+      "advertisesPrivatePreserved": true,
+      "complete": true,
+      "issues": [],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-notice-separation",
+    "value": {
+      "advertisesExcludedNoRedistribution": true,
+      "advertisesHistorySeparate": true,
+      "advertisesNoticeReference": false,
+      "advertisesPrivatePreserved": true
+    }
+  },
+  "output": {
+    "kind": "check-notice-separation",
+    "ok": true,
+    "value": {
+      "advertisesExcludedNoRedistribution": true,
+      "advertisesHistorySeparate": true,
+      "advertisesNoticeReference": false,
+      "advertisesPrivatePreserved": true,
+      "complete": false,
+      "issues": [
+        "missing-notice-reference"
+      ],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-notice-separation",
+    "value": {
+      "advertisesExcludedNoRedistribution": true,
+      "advertisesHistorySeparate": true,
+      "advertisesNoticeReference": true,
+      "advertisesPrivatePreserved": "yes"
+    }
+  },
+  "output": {
+    "kind": "check-notice-separation",
+    "ok": true,
+    "value": {
+      "advertisesExcludedNoRedistribution": true,
+      "advertisesHistorySeparate": true,
+      "advertisesNoticeReference": true,
+      "advertisesPrivatePreserved": null,
+      "complete": false,
+      "issues": [
+        "bad-private-preserved"
+      ],
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_notice_separation_guard.test.js`.
