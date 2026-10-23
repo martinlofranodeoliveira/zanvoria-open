@@ -2183,3 +2183,90 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_validation_scope_guard.test.js`.
+
+
+<!-- community-core:wildbound-zero-install-guard -->
+### Wildbound Zero-Install Scope Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented zero-install scope so no package installation and no credentials-needed claims can be unit-tested as pure JSON without install, network, storage, SDK, leaderboard, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_zero_install_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkZeroInstall and checkZeroInstallBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-zero-install or check-zero-install-batch and a value field. For check-zero-install value must be a plain object with exactly keys advertisesNoCredentials and advertisesNoPackageInstall. Each flag must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered advertisesNoCredentials, advertisesNoPackageInstall, complete, issues and valid. Flags echo input; valid true; complete true only when both flags true else false; issues empty when complete else holds one or more of missing-no-credentials and missing-no-package-install in that deterministic order for each false flag. When any flag malformed return ok true with kind echo and value holding same five keys where valid false, complete false, flags echo when boolean else null, and issues holds one or more of bad-no-credentials and bad-no-package-install in that deterministic order. For check-zero-install-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a zero-install value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-zero-install-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests, with top-level keys ordered alphabetically. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented zero-install scope with no package installation or credentials needed and never performs install, network, storage, SDK, leaderboard submission, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_zero_install_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-zero-install",
+    "value": {
+      "advertisesNoCredentials": true,
+      "advertisesNoPackageInstall": true
+    }
+  },
+  "output": {
+    "kind": "check-zero-install",
+    "ok": true,
+    "value": {
+      "advertisesNoCredentials": true,
+      "advertisesNoPackageInstall": true,
+      "complete": true,
+      "issues": [],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-zero-install",
+    "value": {
+      "advertisesNoCredentials": true,
+      "advertisesNoPackageInstall": false
+    }
+  },
+  "output": {
+    "kind": "check-zero-install",
+    "ok": true,
+    "value": {
+      "advertisesNoCredentials": true,
+      "advertisesNoPackageInstall": false,
+      "complete": false,
+      "issues": [
+        "missing-no-package-install"
+      ],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-zero-install",
+    "value": {
+      "advertisesNoCredentials": "yes",
+      "advertisesNoPackageInstall": true
+    }
+  },
+  "output": {
+    "kind": "check-zero-install",
+    "ok": true,
+    "value": {
+      "advertisesNoCredentials": null,
+      "advertisesNoPackageInstall": true,
+      "complete": false,
+      "issues": [
+        "bad-no-credentials"
+      ],
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_zero_install_guard.test.js`.
