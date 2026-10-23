@@ -2084,3 +2084,102 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_notice_separation_guard.test.js`.
+
+
+<!-- community-core:wildbound-validation-scope-guard -->
+### Wildbound Validation Scope Honesty Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented validation coverage so JavaScript syntax, local HTTP serving, denied private paths and unsupported writes claims can be unit-tested as pure JSON without server, storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_validation_scope_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkValidationScope and checkValidationScopeBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-validation-scope or check-validation-scope-batch and a value field. For check-validation-scope value must be a plain object with exactly keys advertisesDeniedPaths, advertisesServingCheck, advertisesSyntaxCheck and advertisesUnsupportedWrites. Each flag must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered advertisesDeniedPaths, advertisesServingCheck, advertisesSyntaxCheck, advertisesUnsupportedWrites, complete, issues and valid. Flags echo input; valid true; complete true only when all four flags true else false; issues empty when complete else holds one or more of missing-denied-paths, missing-serving-check, missing-syntax-check and missing-unsupported-writes in that deterministic order for each false flag. When any flag malformed return ok true with kind echo and value holding same seven keys where valid false, complete false, flags echo when boolean else null, and issues holds one or more of bad-denied-paths, bad-serving-check, bad-syntax-check and bad-unsupported-writes in that deterministic order. For check-validation-scope-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a validation-scope value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-validation-scope-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests, with top-level keys ordered alphabetically. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented validation coverage of JavaScript syntax and local HTTP serving including denied private paths and unsupported writes and never performs server, storage, SDK, leaderboard, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_validation_scope_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-validation-scope",
+    "value": {
+      "advertisesDeniedPaths": true,
+      "advertisesServingCheck": true,
+      "advertisesSyntaxCheck": true,
+      "advertisesUnsupportedWrites": true
+    }
+  },
+  "output": {
+    "kind": "check-validation-scope",
+    "ok": true,
+    "value": {
+      "advertisesDeniedPaths": true,
+      "advertisesServingCheck": true,
+      "advertisesSyntaxCheck": true,
+      "advertisesUnsupportedWrites": true,
+      "complete": true,
+      "issues": [],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-validation-scope",
+    "value": {
+      "advertisesDeniedPaths": true,
+      "advertisesServingCheck": true,
+      "advertisesSyntaxCheck": false,
+      "advertisesUnsupportedWrites": true
+    }
+  },
+  "output": {
+    "kind": "check-validation-scope",
+    "ok": true,
+    "value": {
+      "advertisesDeniedPaths": true,
+      "advertisesServingCheck": true,
+      "advertisesSyntaxCheck": false,
+      "advertisesUnsupportedWrites": true,
+      "complete": false,
+      "issues": [
+        "missing-syntax-check"
+      ],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-validation-scope",
+    "value": {
+      "advertisesDeniedPaths": "yes",
+      "advertisesServingCheck": true,
+      "advertisesSyntaxCheck": true,
+      "advertisesUnsupportedWrites": true
+    }
+  },
+  "output": {
+    "kind": "check-validation-scope",
+    "ok": true,
+    "value": {
+      "advertisesDeniedPaths": null,
+      "advertisesServingCheck": true,
+      "advertisesSyntaxCheck": true,
+      "advertisesUnsupportedWrites": true,
+      "complete": false,
+      "issues": [
+        "bad-denied-paths"
+      ],
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_validation_scope_guard.test.js`.
