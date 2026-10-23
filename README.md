@@ -1795,3 +1795,94 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_save_write_guard.test.js`.
+
+
+<!-- community-core:wildbound-ad-enable-guard -->
+### Wildbound Ad Enable Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented ads enable flag plus SDK ad API gating so ad attempt versus skip decisions can be unit-tested as pure JSON without storage, SDK, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_ad_enable_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkAdEnable and checkAdEnableBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-ad-enable or check-ad-enable-batch and a value field. For check-ad-enable value must be a plain object with exactly keys adsEnabled and hasAdApi. adsEnabled must be boolean, hasAdApi must be boolean. When well-formed return ok true with kind echo and value holding alphabetically ordered adsEnabled, allowed, attempted, hasAdApi, issues, reason and valid. adsEnabled hasAdApi echo input; valid true with issues empty; allowed true when adsEnabled true and hasAdApi true else false; attempted true when allowed else false; reason null when allowed else ads-disabled when adsEnabled false else ad-api-unavailable. When any field malformed return ok true with kind echo and value holding same seven keys where valid false, allowed false, attempted false, adsEnabled echoes when boolean else null, hasAdApi echoes when boolean else null, reason null, and issues holds one or more of bad-ads-enabled and bad-ad-api in that deterministic order. For check-ad-enable-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an ad-enable value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-ad-enable-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented ads enable flag with SDK ad API gating and local fallback and never performs storage, SDK, leaderboard submission, network, sound or rendering. Reusable deterministic JSON core: js/community/wildbound_ad_enable_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-ad-enable",
+    "value": {
+      "adsEnabled": true,
+      "hasAdApi": true
+    }
+  },
+  "output": {
+    "kind": "check-ad-enable",
+    "ok": true,
+    "value": {
+      "adsEnabled": true,
+      "allowed": true,
+      "attempted": true,
+      "hasAdApi": true,
+      "issues": [],
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-ad-enable",
+    "value": {
+      "adsEnabled": false,
+      "hasAdApi": true
+    }
+  },
+  "output": {
+    "kind": "check-ad-enable",
+    "ok": true,
+    "value": {
+      "adsEnabled": false,
+      "allowed": false,
+      "attempted": false,
+      "hasAdApi": true,
+      "issues": [],
+      "reason": "ads-disabled",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-ad-enable",
+    "value": {
+      "adsEnabled": "yes",
+      "hasAdApi": true
+    }
+  },
+  "output": {
+    "kind": "check-ad-enable",
+    "ok": true,
+    "value": {
+      "adsEnabled": null,
+      "allowed": false,
+      "attempted": false,
+      "hasAdApi": true,
+      "issues": [
+        "bad-ads-enabled"
+      ],
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_ad_enable_guard.test.js`.
