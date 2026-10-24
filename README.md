@@ -2270,3 +2270,90 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_zero_install_guard.test.js`.
+
+
+<!-- community-core:wildbound-fallback-log-guard -->
+### Wildbound Fallback Log Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented local fallback warn versus silent-noop behaviour so SDK-init, save-read, save-write, ad-request and loading/gameplay fallback logging decisions can be unit-tested as pure JSON without SDK, storage, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_fallback_log_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkFallbackLog and checkFallbackLogBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-fallback-log or check-fallback-log-batch and a value field. For check-fallback-log value must be a plain object with exactly key area. area must be string length 1 to 32 where each character verified with for-of is A-Z, a-z or hyphen and equals one of sdk-init, save-read, save-write, ad-request, loading-start, loading-stop, gameplay-start or gameplay-stop. When well-formed return ok true with kind echo and value holding alphabetically ordered area, expectsWarn, fallback, issues, tag and valid. area echoes input; valid true with issues empty; expectsWarn true with fallback local and tag warn string for sdk-init, save-read, save-write and ad-request, else expectsWarn false with fallback noop and tag null for loading-start, loading-stop, gameplay-start and gameplay-stop; tag equals [platform] CrazyGames SDK unavailable using local fallback. for sdk-init, [platform] save read failed for save-read, [platform] save write failed for save-write, [platform] ad request skipped for ad-request, null otherwise. When area malformed return ok true with kind echo and value holding same six keys where valid false, expectsWarn false, fallback null, tag null, area echoes when string else null, and issues holding single bad-area. For check-fallback-log-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a fallback-log value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-fallback-log-batch and value holding results array where each result holds the six ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests, with top-level keys ordered alphabetically. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented local fallback warn versus silent-noop behaviour and never performs SDK, storage, network, sound or rendering. This module is independently tested; application integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-fallback-log",
+    "value": {
+      "area": "save-read"
+    }
+  },
+  "output": {
+    "kind": "check-fallback-log",
+    "ok": true,
+    "value": {
+      "area": "save-read",
+      "expectsWarn": true,
+      "fallback": "local",
+      "issues": [],
+      "tag": "[platform] save read failed",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-fallback-log",
+    "value": {
+      "area": "gameplay-start"
+    }
+  },
+  "output": {
+    "kind": "check-fallback-log",
+    "ok": true,
+    "value": {
+      "area": "gameplay-start",
+      "expectsWarn": false,
+      "fallback": "noop",
+      "issues": [],
+      "tag": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-fallback-log",
+    "value": {
+      "area": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-fallback-log",
+    "ok": true,
+    "value": {
+      "area": null,
+      "expectsWarn": false,
+      "fallback": null,
+      "issues": [
+        "bad-area"
+      ],
+      "tag": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_fallback_log_guard.test.js`.
