@@ -2357,3 +2357,115 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_fallback_log_guard.test.js`.
+
+
+<!-- community-core:wildbound-sdk-surface-guard -->
+### Wildbound SDK Surface Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented CrazyGames SDK groups used by the local bridge so init, game lifecycle, persistence, ad and score-submission mock completeness can be unit-tested as pure JSON without SDK, network, storage, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_sdk_surface_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkSdkSurface and checkSdkSurfaceBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-sdk-surface or check-sdk-surface-batch and a value field. For check-sdk-surface value must be a plain object with exactly keys ad, data, game, init and user. Each flag must be boolean marking whether that documented SDK group is present: init for SDK init, game for loading and gameplay and mute, data for getItem and setItem, ad for requestAd, user for submitScore. When well-formed return ok true with kind echo and value holding alphabetically ordered ad, canAdvertise, canLifecycle, canPersist, canRank, data, game, init, issues, user and valid. Flags echo input; valid true with issues empty; canLifecycle equals init and game; canPersist equals init and data; canAdvertise equals init and ad; canRank equals init and user. When any flag malformed return ok true with kind echo and value holding same eleven keys where valid false, each derived capability null, each flag echoes when boolean else null, and issues holds one or more of bad-ad-flag, bad-data-flag, bad-game-flag, bad-init-flag and bad-user-flag in that deterministic order. For check-sdk-surface-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an sdk-surface value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-sdk-surface-batch and value holding results array where each result holds the eleven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests, with top-level keys ordered alphabetically. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented SDK groups used for init, game lifecycle and mute, data persistence, ad request and score submission with local fallback and never performs SDK, network, storage, sound or rendering. This module is independently tested; application and UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-sdk-surface",
+    "value": {
+      "ad": true,
+      "data": true,
+      "game": true,
+      "init": true,
+      "user": true
+    }
+  },
+  "output": {
+    "kind": "check-sdk-surface",
+    "ok": true,
+    "value": {
+      "ad": true,
+      "canAdvertise": true,
+      "canLifecycle": true,
+      "canPersist": true,
+      "canRank": true,
+      "data": true,
+      "game": true,
+      "init": true,
+      "issues": [],
+      "user": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-sdk-surface",
+    "value": {
+      "ad": true,
+      "data": true,
+      "game": true,
+      "init": false,
+      "user": true
+    }
+  },
+  "output": {
+    "kind": "check-sdk-surface",
+    "ok": true,
+    "value": {
+      "ad": true,
+      "canAdvertise": false,
+      "canLifecycle": false,
+      "canPersist": false,
+      "canRank": false,
+      "data": true,
+      "game": true,
+      "init": false,
+      "issues": [],
+      "user": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-sdk-surface",
+    "value": {
+      "ad": "yes",
+      "data": true,
+      "game": true,
+      "init": true,
+      "user": true
+    }
+  },
+  "output": {
+    "kind": "check-sdk-surface",
+    "ok": true,
+    "value": {
+      "ad": null,
+      "canAdvertise": null,
+      "canLifecycle": null,
+      "canPersist": null,
+      "canRank": null,
+      "data": true,
+      "game": true,
+      "init": true,
+      "issues": [
+        "bad-ad-flag"
+      ],
+      "user": true,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_sdk_surface_guard.test.js`.
