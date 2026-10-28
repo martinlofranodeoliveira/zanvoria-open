@@ -2469,3 +2469,97 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_sdk_surface_guard.test.js`.
+
+
+<!-- community-core:wildbound-honest-scope-guard -->
+### Wildbound Honest Scope Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented honest-scope exclusions where no cloud leaderboard, SDK download or production deployment is included so scope honesty can be unit-tested as pure JSON without server, storage, SDK, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_honest_scope_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkHonestScope and checkHonestScopeBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-honest-scope or check-honest-scope-batch and a value field. For check-honest-scope value must be a plain object with exactly keys cloudLeaderboard, productionDeploy and sdkDownload. Each flag must be boolean marking whether documentation claims that excluded capability is offered: cloudLeaderboard for cloud leaderboard, sdkDownload for SDK download, productionDeploy for production deployment. When well-formed return ok true with kind echo and value holding alphabetically ordered cloudLeaderboard, honest, issues, productionDeploy, reason, sdkDownload and valid. Flags echo input; valid true with issues empty; honest true only when all three flags are false else false; reason null when honest true else dishonest-claim. When any flag malformed return ok true with kind echo and value holding same seven keys where valid false, honest null, reason null, each flag echoes when boolean else null, and issues holds one or more of bad-cloud-flag, bad-deploy-flag and bad-sdk-flag in that deterministic order. For check-honest-scope-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an honest-scope value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-honest-scope-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests, with top-level keys ordered alphabetically. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented honest open-edition exclusions with no cloud leaderboard, SDK download or production deployment and never performs server, storage, SDK, leaderboard, network, sound or rendering. This module is independently tested; application/UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-honest-scope",
+    "value": {
+      "cloudLeaderboard": false,
+      "productionDeploy": false,
+      "sdkDownload": false
+    }
+  },
+  "output": {
+    "kind": "check-honest-scope",
+    "ok": true,
+    "value": {
+      "cloudLeaderboard": false,
+      "honest": true,
+      "issues": [],
+      "productionDeploy": false,
+      "reason": null,
+      "sdkDownload": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-honest-scope",
+    "value": {
+      "cloudLeaderboard": true,
+      "productionDeploy": false,
+      "sdkDownload": false
+    }
+  },
+  "output": {
+    "kind": "check-honest-scope",
+    "ok": true,
+    "value": {
+      "cloudLeaderboard": true,
+      "honest": false,
+      "issues": [],
+      "productionDeploy": false,
+      "reason": "dishonest-claim",
+      "sdkDownload": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-honest-scope",
+    "value": {
+      "cloudLeaderboard": "yes",
+      "productionDeploy": false,
+      "sdkDownload": false
+    }
+  },
+  "output": {
+    "kind": "check-honest-scope",
+    "ok": true,
+    "value": {
+      "cloudLeaderboard": null,
+      "honest": null,
+      "issues": [
+        "bad-cloud-flag"
+      ],
+      "productionDeploy": false,
+      "reason": null,
+      "sdkDownload": false,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_honest_scope_guard.test.js`.
