@@ -2563,3 +2563,85 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_honest_scope_guard.test.js`.
+
+
+<!-- community-core:wildbound-init-dependency-guard -->
+### Wildbound Init Dependency Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented init-gated versus synchronous local-only bridge behavior so offline-capable versus SDK-gated method decisions can be unit-tested as pure JSON without storage, SDK, leaderboard, network, sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_init_dependency_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkInitDependency and checkInitDependencyBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-init-dependency or check-init-dependency-batch and a value field. For check-init-dependency value must be a plain object with exactly key method. method must be string length 1 to 32 where each character verified with for-of is A to Z or a to z. When well-formed with method in allowlist init loadingStart loadingStop gameplayStart gameplayStop getSave setSave getSettings setSettings requestAd onMuteChange submitScore isCrazyGames return ok true with kind echo and value holding alphabetically ordered issues localOnly method requiresInit valid. method echoes input; valid true with issues empty; requiresInit true for loadingStart loadingStop gameplayStart gameplayStop getSave setSave requestAd onMuteChange submitScore else false for init getSettings setSettings isCrazyGames; localOnly true only for getSettings setSettings else false. When method malformed or outside allowlist return ok true with kind echo and value holding same five keys where valid false requiresInit null localOnly null method echoes when string else null and issues holding single bad-method. For check-init-dependency-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a method wrapper object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-init-dependency-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind bad-payload bad-value and bad-requests. All operations use for-of over Object entries and string characters build objects with object literals and Object.fromEntries and arrays with push preserve input order keys alphabetically at every level builtins never aliased or passed as callbacks computed access only for literal nonnegative numeric indices no prototype or constructor access no reassignment or property mutation and are pure deterministic JSON to JSON with no input output environment access Date time randomness callbacks or external packages. Mirrors only the documented init-gated versus synchronous local-only bridge behavior and never performs storage SDK leaderboard network sound or rendering. This module is independently tested; application integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-init-dependency",
+    "value": {
+      "method": "gameplayStart"
+    }
+  },
+  "output": {
+    "kind": "check-init-dependency",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "localOnly": false,
+      "method": "gameplayStart",
+      "requiresInit": true,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-init-dependency",
+    "value": {
+      "method": "getSettings"
+    }
+  },
+  "output": {
+    "kind": "check-init-dependency",
+    "ok": true,
+    "value": {
+      "issues": [],
+      "localOnly": true,
+      "method": "getSettings",
+      "requiresInit": false,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-init-dependency",
+    "value": {
+      "method": "unknown"
+    }
+  },
+  "output": {
+    "kind": "check-init-dependency",
+    "ok": true,
+    "value": {
+      "issues": [
+        "bad-method"
+      ],
+      "localOnly": null,
+      "method": "unknown",
+      "requiresInit": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_init_dependency_guard.test.js`.
