@@ -2739,3 +2739,232 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_encrypt_param_guard.test.js`.
+
+
+<!-- community-core:wildbound-encrypt-payload-guard -->
+### Wildbound Encrypt Payload Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented AES-GCM 12-byte IV prepended payload assembly so IV prefix and length decisions can be unit-tested as pure JSON without crypto randomness storage SDK leaderboard network sound or rendering. This module is independently tested; application integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_encrypt_payload_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkEncryptPayload and checkEncryptPayloadBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-encrypt-payload or check-encrypt-payload-batch and a value field. For check-encrypt-payload value must be a plain object with exactly keys cipher, combined and iv. iv must be an array with length exactly 12 where each element verified with for-of is a finite safe integer number from 0 to 255 inclusive, cipher must be an array with length 0 to 64 where each element verified with for-of is a finite safe integer number from 0 to 255 inclusive, combined must be an array with length 0 to 76 where each element verified with for-of is a finite safe integer number from 0 to 255 inclusive. When well-formed return ok true with kind echo and value holding alphabetically ordered cipher, combined, expectedLength, issues, iv, matches, reason and valid. cipher, combined and iv echo input; expectedLength equals 12 plus cipher length; valid true with issues empty; matches true with reason null only when combined length equals expectedLength and every combined byte equals the concatenation of iv followed by cipher verified with for-of plus Map get and set and arrays built with push, else matches false with reason length-mismatch when lengths differ else prefix-mismatch; valid true in both match and mismatch cases. When any field malformed return ok true with kind echo and value holding same eight keys where valid false, matches false, reason null, expectedLength null, cipher echoes when array else null, combined echoes when array else null, iv echoes when array else null, and issues holds one or more of bad-iv, bad-cipher and bad-combined in that deterministic order. For check-encrypt-payload-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an encrypt-payload value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-encrypt-payload-batch and value holding results array where each result holds the eight ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests with top-level keys ordered alphabetically. All operations use for-of over Object entries and array elements, build objects with object literals and Object.fromEntries and arrays with push and maps with set, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented 12-byte IV prepended to ciphertext payload assembly and never performs encryption randomness storage SDK leaderboard network sound or rendering. This module is independently tested; application integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-payload",
+    "value": {
+      "cipher": [
+        20,
+        21
+      ],
+      "combined": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        20,
+        21
+      ],
+      "iv": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-payload",
+    "ok": true,
+    "value": {
+      "cipher": [
+        20,
+        21
+      ],
+      "combined": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        20,
+        21
+      ],
+      "expectedLength": 14,
+      "issues": [],
+      "iv": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "matches": true,
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-payload",
+    "value": {
+      "cipher": [
+        20,
+        21
+      ],
+      "combined": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        20
+      ],
+      "iv": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-payload",
+    "ok": true,
+    "value": {
+      "cipher": [
+        20,
+        21
+      ],
+      "combined": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        20
+      ],
+      "expectedLength": 14,
+      "issues": [],
+      "iv": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "matches": false,
+      "reason": "length-mismatch",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-payload",
+    "value": {
+      "cipher": [
+        1
+      ],
+      "combined": [
+        1
+      ],
+      "iv": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-payload",
+    "ok": true,
+    "value": {
+      "cipher": [
+        1
+      ],
+      "combined": [
+        1
+      ],
+      "expectedLength": null,
+      "issues": [
+        "bad-iv"
+      ],
+      "iv": null,
+      "matches": false,
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_encrypt_payload_guard.test.js`.
