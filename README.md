@@ -2645,3 +2645,97 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_init_dependency_guard.test.js`.
+
+
+<!-- community-core:wildbound-encrypt-param-guard -->
+### Wildbound Encrypt Param Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented AES-GCM 12-byte IV raw-key encrypt params so algorithm ivLength and keyFormat decisions can be unit-tested as pure JSON without crypto randomness storage SDK leaderboard network sound or rendering.
+
+Reusable deterministic JSON core: `js/community/wildbound_encrypt_param_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkEncryptParam and checkEncryptParamBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-encrypt-param or check-encrypt-param-batch and a value field. For check-encrypt-param value must be a plain object with exactly keys algorithm ivLength and keyFormat. algorithm must be string length 1 to 32 where each character verified with for-of is A-Z or hyphen, keyFormat must be string length 1 to 16 where each character verified with for-of is a-z, ivLength must be finite safe number within plus-minus 9007199254740991. When well-formed return ok true with kind echo and value holding alphabetically ordered algorithm allowed issues ivLength keyFormat reason and valid. algorithm ivLength and keyFormat echo input; valid true with issues empty; allowed true with reason null only when algorithm equals AES-GCM and ivLength equals 12 and keyFormat equals raw else allowed false with reason unsupported-algorithm when algorithm differs else bad-iv-length when ivLength differs else bad-key-format. When any field malformed return ok true with kind echo and value holding same seven keys where valid false allowed false reason null algorithm echoes when string else null ivLength echoes when number else null keyFormat echoes when string else null and issues holds one or more of bad-algorithm bad-iv-length and bad-key-format in that deterministic order. For check-encrypt-param-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an encrypt-param value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-encrypt-param-batch and value holding results array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind bad-payload bad-value and bad-requests with top-level keys ordered alphabetically. All operations use for-of over Object entries and string characters build objects with object literals and Object.fromEntries and arrays with push preserve input order keys alphabetically at every level builtins never aliased or passed as callbacks computed access only for literal nonnegative numeric indices no prototype or constructor access no reassignment or property mutation and are pure deterministic JSON to JSON with no input output environment access Date time randomness callbacks or external packages. Mirrors only the documented AES-GCM 12-byte IV raw-key encrypt params and never performs encryption randomness storage SDK leaderboard network sound or rendering. This module is independently tested; application and UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-param",
+    "value": {
+      "algorithm": "AES-GCM",
+      "ivLength": 12,
+      "keyFormat": "raw"
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-param",
+    "ok": true,
+    "value": {
+      "algorithm": "AES-GCM",
+      "allowed": true,
+      "issues": [],
+      "ivLength": 12,
+      "keyFormat": "raw",
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-param",
+    "value": {
+      "algorithm": "AES-GCM",
+      "ivLength": 16,
+      "keyFormat": "raw"
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-param",
+    "ok": true,
+    "value": {
+      "algorithm": "AES-GCM",
+      "allowed": false,
+      "issues": [],
+      "ivLength": 16,
+      "keyFormat": "raw",
+      "reason": "bad-iv-length",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-param",
+    "value": {
+      "algorithm": 123,
+      "ivLength": 12,
+      "keyFormat": "raw"
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-param",
+    "ok": true,
+    "value": {
+      "algorithm": null,
+      "allowed": false,
+      "issues": [
+        "bad-algorithm"
+      ],
+      "ivLength": 12,
+      "keyFormat": "raw",
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_encrypt_param_guard.test.js`.
