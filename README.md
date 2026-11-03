@@ -2968,3 +2968,87 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_encrypt_payload_guard.test.js`.
+
+
+<!-- community-core:wildbound-crypto-call-guard -->
+### Wildbound Crypto Call Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented WebCrypto text and base64 calls used by encryptScore so allowlisted versus unlisted call decisions can be unit-tested as pure JSON without crypto randomness storage SDK leaderboard network sound or rendering. This module is independently tested; application and UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_crypto_call_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkCryptoCall and checkCryptoCallBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-crypto-call or check-crypto-call-batch and a value field. For check-crypto-call value must be a plain object with exactly key call. call must be string length 1 to 64 where each character verified with for-of is A-Z, a-z, 0-9, dot, hyphen or underscore. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, call, issues, reason and valid. call echoes input; valid true with issues empty; allowed true with reason null only when call equals atob or btoa or crypto.getRandomValues or crypto.subtle.encrypt or crypto.subtle.importKey or TextEncoder.encode, else allowed false with reason unlisted-call. When call malformed return ok true with kind echo and value holding same five keys where valid false, allowed false, reason null, call echoes when string else null, and issues holding single bad-call. For check-crypto-call-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a crypto-call value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-crypto-call-batch and value holding results array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests with top-level keys ordered alphabetically. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented WebCrypto text and base64 calls used by encryptScore in js/platform-bridge.js and never performs encryption randomness storage SDK leaderboard network sound or rendering. This module is independently tested; application and UI integration is outside this change.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-crypto-call",
+    "value": {
+      "call": "crypto.subtle.encrypt"
+    }
+  },
+  "output": {
+    "kind": "check-crypto-call",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "call": "crypto.subtle.encrypt",
+      "issues": [],
+      "reason": null,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-crypto-call",
+    "value": {
+      "call": "fetch"
+    }
+  },
+  "output": {
+    "kind": "check-crypto-call",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "call": "fetch",
+      "issues": [],
+      "reason": "unlisted-call",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-crypto-call",
+    "value": {
+      "call": {
+        "x": 1
+      }
+    }
+  },
+  "output": {
+    "kind": "check-crypto-call",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "call": null,
+      "issues": [
+        "bad-call"
+      ],
+      "reason": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_crypto_call_guard.test.js`.
