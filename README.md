@@ -3205,3 +3205,126 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_preview_url_guard.test.js`.
+
+
+<!-- community-core:wildbound-doc-section-guard -->
+### Wildbound Doc Section Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented Portuguese public-docs headings and reference links so heading hierarchy skips and unallowlisted references can be unit-tested as pure JSON without filesystem, network, SDK, preview server, sound or rendering. Independently tested; application/UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_doc_section_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_doc_section_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change. Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkDocSection and checkDocSectionBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-doc-section or check-doc-section-batch and a value field. For check-doc-section value must be a plain object with exactly keys headingLevel, headingText and references. headingLevel must be finite safe integer 1 to 6 inclusive. headingText must be string length 1 to 120. references must be array length 0 to 8 where each element is string length 1 to 128 where each character verified with for-of is A-Z a-z 0-9 slash dot hyphen underscore colon or hash. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, headingLevel, headingText, issues, references and valid. headingLevel, headingText and references echo input; valid true; allowed true with issues empty when every reference equals NOTICE.md or LICENSE or https://github.com/martinlofranodeoliveira#projetos-abertos, else allowed false with issues holding single unallowed-reference. When any field malformed return ok true with kind echo and value holding same six keys where valid false, allowed false, headingLevel echoes when number else null, headingText echoes when string else null, references echoes when array else null, and issues holds one or more of bad-headingLevel, bad-headingText and bad-references in that deterministic order. For check-doc-section-batch value must be a plain object with exactly key sections holding array length 0 to 16 where each element is a doc-section value object as above; each evaluated independently in order with for-of and results collected with push; hierarchy checked in order over well-formed levels where first level must be 1 and each next level must not exceed previous by more than 1; success returns ok true with kind check-doc-section-batch and value holding plain object with exactly keys hierarchyIssues and results where results array holds each six-key result above and hierarchyIssues holds empty array when sections empty or hierarchy satisfied else single first-not-h1 when first valid level is not 1 else hierarchy-skip when any increase exceeds 1 else hierarchy-unverifiable when any section malformed, in that priority order. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-sections. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented Portuguese public-docs headings and reference links with NOTICE.md, LICENSE and lab catalog and never performs filesystem, server, storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-doc-section",
+    "value": {
+      "headingLevel": 2,
+      "headingText": "Documentação e validação",
+      "references": [
+        "NOTICE.md"
+      ]
+    }
+  },
+  "output": {
+    "kind": "check-doc-section",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "headingLevel": 2,
+      "headingText": "Documentação e validação",
+      "issues": [],
+      "references": [
+        "NOTICE.md"
+      ],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-doc-section",
+    "value": {
+      "headingLevel": 2,
+      "headingText": "Contribuir",
+      "references": [
+        "https://example.com"
+      ]
+    }
+  },
+  "output": {
+    "kind": "check-doc-section",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "headingLevel": 2,
+      "headingText": "Contribuir",
+      "issues": [
+        "unallowed-reference"
+      ],
+      "references": [
+        "https://example.com"
+      ],
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-doc-section-batch",
+    "value": {
+      "sections": [
+        {
+          "headingLevel": 1,
+          "headingText": "Zanvoria",
+          "references": []
+        },
+        {
+          "headingLevel": 3,
+          "headingText": "Detalhe",
+          "references": []
+        }
+      ]
+    }
+  },
+  "output": {
+    "kind": "check-doc-section-batch",
+    "ok": true,
+    "value": {
+      "hierarchyIssues": [
+        "hierarchy-skip"
+      ],
+      "results": [
+        {
+          "allowed": true,
+          "headingLevel": 1,
+          "headingText": "Zanvoria",
+          "issues": [],
+          "references": [],
+          "valid": true
+        },
+        {
+          "allowed": true,
+          "headingLevel": 3,
+          "headingText": "Detalhe",
+          "issues": [],
+          "references": [],
+          "valid": true
+        }
+      ]
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_doc_section_guard.test.js`.
