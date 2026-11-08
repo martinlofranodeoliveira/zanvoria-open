@@ -3106,3 +3106,102 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_crypto_call_guard.test.js`.
+
+
+<!-- community-core:wildbound-preview-url-guard -->
+### Wildbound Preview URL Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented loopback preview URL (http on 127.0.0.1 with PORT 0 ephemeral or numeric port) so allowed versus denied preview URL construction can be unit-tested as pure JSON without server, storage, SDK, network, sound or rendering. Independently tested; application and UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_preview_url_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_preview_url_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change. Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkPreviewUrl and checkPreviewUrlBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-preview-url or check-preview-url-batch and a value field. For check-preview-url value must be a plain object with exactly keys host, port and protocol. protocol must be string length 1 to 16 where each character verified with for-of is a-z. host must be string length 1 to 64 where each character verified with for-of is digit 0-9 or dot. port must be finite safe integer number within plus-minus 9007199254740991. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, blockedReason, host, issues, port, protocol, url and valid. valid true with issues empty; host, port and protocol echo input; url equals protocol plus :// plus host plus : plus String(port); allowed true with blockedReason null when protocol is http and host is 127.0.0.1 and port is 0 to 65535 inclusive where 0 means ephemeral loopback port and 8080 is documented default, else allowed false with blockedReason non-http-protocol when protocol is not http else non-loopback-host when host is not 127.0.0.1 else port-out-of-range. When any field malformed return ok true with kind echo and value holding same eight keys where valid false, allowed false, blockedReason null, url null, host echoes when string else null, protocol echoes when string else null, port echoes when number else null, and issues holds one or more of bad-host, bad-port and bad-protocol in that deterministic alphabetical order for each field that fails. For check-preview-url-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a preview-url value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-preview-url-batch and value holding results array where each result holds the eight ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented loopback preview URL with http on 127.0.0.1, PORT 0 ephemeral and minimal local preview aid not production deployment and never performs server, storage, SDK, leaderboard, network, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-preview-url",
+    "value": {
+      "host": "127.0.0.1",
+      "port": 8080,
+      "protocol": "http"
+    }
+  },
+  "output": {
+    "kind": "check-preview-url",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "blockedReason": null,
+      "host": "127.0.0.1",
+      "issues": [],
+      "port": 8080,
+      "protocol": "http",
+      "url": "http://127.0.0.1:8080",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-preview-url",
+    "value": {
+      "host": "192.168.1.10",
+      "port": 8080,
+      "protocol": "http"
+    }
+  },
+  "output": {
+    "kind": "check-preview-url",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "blockedReason": "non-loopback-host",
+      "host": "192.168.1.10",
+      "issues": [],
+      "port": 8080,
+      "protocol": "http",
+      "url": "http://192.168.1.10:8080",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-preview-url",
+    "value": {
+      "host": "127.0.0.1",
+      "port": {
+        "x": 1
+      },
+      "protocol": "http"
+    }
+  },
+  "output": {
+    "kind": "check-preview-url",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "blockedReason": null,
+      "host": "127.0.0.1",
+      "issues": [
+        "bad-port"
+      ],
+      "port": null,
+      "protocol": "http",
+      "url": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_preview_url_guard.test.js`.
