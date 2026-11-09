@@ -3423,3 +3423,83 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_encrypt_size_guard.test.js`.
+
+
+<!-- community-core:wildbound-push-path-guard -->
+### Wildbound Push Path Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented do-not-push sensitive paths and dotfile segments so contribution path allow decisions can be unit-tested as pure JSON without filesystem, git, network, SDK, sound or rendering. Independently tested; application/UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_push_path_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_push_path_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change. Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkPushPath and checkPushPathBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-push-path or check-push-path-batch and a value field. For check-push-path value must be a plain object with exactly key path. path must be string length 1 to 128 where each character verified with for-of is A-Z, a-z, 0-9, slash, dot, hyphen or underscore. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, blockedReason, issues, path and valid. path echoes input; valid true with issues empty; decision is deterministic: when any slash-separated segment starts with dot then allowed false with blockedReason dotfile-denied, else when lowercased path contains chave or banco or upload or pessoal in that deterministic check order then allowed false with blockedReason sensitive-push-denied, else allowed true with blockedReason null. When path malformed return ok true with kind echo and value holding same five keys where valid false, allowed false, blockedReason null, path echoes when string else null, and issues holds single bad-path. For check-push-path-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is a push-path value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-push-path-batch and value holding plain object with exactly key results holding array where each result holds the five ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries and string characters, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented do-not-push .env with chaves, bancos, uploads and dados pessoais plus denied dotfile segments such as .git/.env and never performs filesystem, git, network, storage, SDK, leaderboard, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-push-path",
+    "value": {
+      "path": "js/game.js"
+    }
+  },
+  "output": {
+    "kind": "check-push-path",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "blockedReason": null,
+      "issues": [],
+      "path": "js/game.js",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-push-path",
+    "value": {
+      "path": ".env"
+    }
+  },
+  "output": {
+    "kind": "check-push-path",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "blockedReason": "dotfile-denied",
+      "issues": [],
+      "path": ".env",
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-push-path",
+    "value": {
+      "path": "uploads/demo-save.json"
+    }
+  },
+  "output": {
+    "kind": "check-push-path",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "blockedReason": "sensitive-push-denied",
+      "issues": [],
+      "path": "uploads/demo-save.json",
+      "valid": true
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_push_path_guard.test.js`.
