@@ -3328,3 +3328,98 @@ Examples (JSON input and expected output):
 ```
 
 Public regression tests: `test/community_wildbound_doc_section_guard.test.js`.
+
+
+<!-- community-core:wildbound-encrypt-size-guard -->
+### Wildbound Encrypt Size Guard
+
+Gives contributors to the code-only local browser game a tiny deterministic checker for the documented 12-byte IV plus cipher raw length and base64 encoded length so synthetic payload size decisions can be unit-tested as pure JSON without crypto, storage, SDK, network, sound or rendering. Independently tested; application and UI integration is outside this change.
+
+Reusable deterministic JSON core: `js/community/wildbound_encrypt_size_guard.mjs`, API `runFeature(payload)`. This module is independently tested; application/UI integration is outside this change.
+
+Reusable deterministic JSON core: js/community/wildbound_encrypt_size_guard.mjs, API runFeature(payload). This module is independently tested; application/UI integration is outside this change. Exposes runFeature(payload) as the sole required entry point; optional pure helpers checkEncryptSize and checkEncryptSizeBatch may be exposed. Input payload must be a plain JSON object with string field kind equal to check-encrypt-size or check-encrypt-size-batch and a value field. For check-encrypt-size value must be a plain object with exactly keys cipherLen and ivLen. cipherLen must be a finite safe integer 0 to 1024, ivLen must be a finite safe integer 0 to 64. When well-formed return ok true with kind echo and value holding alphabetically ordered allowed, cipherLen, encodedLen, issues, ivLen, rawLen and valid. cipherLen and ivLen echo input; valid true; rawLen equals ivLen plus cipherLen; encodedLen equals 4 multiplied by Math.ceil(rawLen divided by 3); allowed true with issues empty when ivLen equals 12, else allowed false with issues holding single nonstandard-iv. When any field malformed return ok true with kind echo and value holding same seven keys where valid false, allowed false, each well-formed field echoes input while each malformed field echoes null, rawLen null, encodedLen null, and issues holds one or more of bad-cipherLen and bad-ivLen in that deterministic alphabetical order. For check-encrypt-size-batch value must be a plain object with exactly key requests holding array length 0 to 16 where each element is an encrypt-size value object as above; each evaluated independently in order with for-of and results collected with push; success returns ok true with kind check-encrypt-size-batch and value holding plain object with exactly key results holding array where each result holds the seven ordered keys above. Invalid kind or non-object payload or malformed value returns ok false with kind unknown when kind missing or unknown else input kind plus value null plus issues array holding one reason among bad-kind, bad-payload, bad-value and bad-requests. All operations use for-of over Object entries, build objects with object literals and Object.fromEntries and arrays with push, preserve input, order keys alphabetically at every level, builtins never aliased or passed as callbacks, computed access only for literal nonnegative numeric indices, no prototype or constructor access, no reassignment or property mutation, and are pure deterministic JSON to JSON with no input output, environment access, Date, time, randomness, callbacks or external packages. Mirrors only the documented 12-byte iv with iv-length-plus-cipher raw length and btoa 4-times-ceil-divided-by-3 encoded length from js/platform-bridge.js encryptScore and never performs encryption, decryption, key import, random generation, network, storage, SDK, leaderboard submission, sound or rendering.
+
+Examples (JSON input and expected output):
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-size",
+    "value": {
+      "cipherLen": 16,
+      "ivLen": 12
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-size",
+    "ok": true,
+    "value": {
+      "allowed": true,
+      "cipherLen": 16,
+      "encodedLen": 40,
+      "issues": [],
+      "ivLen": 12,
+      "rawLen": 28,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-size",
+    "value": {
+      "cipherLen": 20,
+      "ivLen": 8
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-size",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "cipherLen": 20,
+      "encodedLen": 40,
+      "issues": [
+        "nonstandard-iv"
+      ],
+      "ivLen": 8,
+      "rawLen": 28,
+      "valid": true
+    }
+  }
+}
+```
+
+```json
+{
+  "input": {
+    "kind": "check-encrypt-size",
+    "value": {
+      "cipherLen": {
+        "x": 1
+      },
+      "ivLen": 12
+    }
+  },
+  "output": {
+    "kind": "check-encrypt-size",
+    "ok": true,
+    "value": {
+      "allowed": false,
+      "cipherLen": null,
+      "encodedLen": null,
+      "issues": [
+        "bad-cipherLen"
+      ],
+      "ivLen": 12,
+      "rawLen": null,
+      "valid": false
+    }
+  }
+}
+```
+
+Public regression tests: `test/community_wildbound_encrypt_size_guard.test.js`.
